@@ -1,19 +1,20 @@
 from typing import Annotated
 import os
 from dotenv import set_key, load_dotenv
-from rich import print as rprint
-from rich.panel import Panel
-from rich.pretty import pprint
 
 from brb.saving.find_commands import find_commands
 from brb.saving.save_message import Saving
 from brb.llm.AgentLLM import GeminiLLM
+
+from brb.database.database import Database
 
 import typer
 
 ENV_PATH = os.path.expanduser("~/.brb/.env")
 load_dotenv(ENV_PATH)
 app = typer.Typer(help="CLI tool")
+db = Database()
+db.init_db()
 
 @app.command(name="save", help="Save last work details")
 def save(
@@ -23,6 +24,10 @@ def save(
 ) -> None:
     geminiapikey = os.environ.get("GEMINI_API_KEY")
     msg = Saving(message, find_commands(limit), GeminiLLM(geminiapikey) if aisave else None)
+
+    db.insert_saving(os.getcwd(), msg.message, msg.lastcommands)
+
+    typer.echo(msg.converttodict())
     pass
 
 @app.command(name="set-key", help="Set the Gemini API Key")
@@ -34,7 +39,7 @@ def setkey(
 
 @app.command(name="resume")
 def resume():
-    print("resume")
+    typer.echo(db.fetch_last_session())
 
 if __name__ == "__main__":
     app()

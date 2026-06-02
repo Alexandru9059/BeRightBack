@@ -15,7 +15,7 @@ class GeminiLLM(BaseLLM):
 
     def __init__(self, api_key: str | None, model: str = "gemini-2.5-flash-lite"):
         if api_key is None:
-            return
+            raise GeminiError("API key is required. Run: brb set-key <your_api_key>")
         if GeminiLLM._client is None:
             GeminiLLM._client = genai.Client(api_key = api_key)
         self.model = model
