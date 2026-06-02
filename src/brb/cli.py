@@ -8,6 +8,8 @@ from brb.llm.AgentLLM import GeminiLLM
 
 from brb.database.database import Database
 
+from brb.ui.display import display_session
+
 import typer
 
 ENV_PATH = os.path.expanduser("~/.brb/.env")
@@ -26,9 +28,7 @@ def save(
     msg = Saving(message, find_commands(limit), GeminiLLM(geminiapikey) if aisave else None)
 
     db.insert_saving(os.getcwd(), msg.message, msg.lastcommands)
-
-    typer.echo(msg.converttodict())
-    pass
+    typer.echo("Session saved!")
 
 @app.command(name="set-key", help="Set the Gemini API Key")
 def setkey(
@@ -39,7 +39,7 @@ def setkey(
 
 @app.command(name="resume")
 def resume():
-    typer.echo(db.fetch_last_session())
+    display_session(db.fetch_last_session())
 
 if __name__ == "__main__":
     app()
