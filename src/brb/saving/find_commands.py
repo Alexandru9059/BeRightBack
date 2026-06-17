@@ -10,8 +10,11 @@ def find_commands(command_number: int) -> list[str]:
     else:
         return []
 
-    with open(history_path, "r", errors="ignore") as f:
-        lines = [line.strip() for line in f.readlines()]
+    try:
+        with open(history_path, "r", errors="ignore") as f:
+            lines = [line.strip() for line in f.readlines()]
+    except FileNotFoundError:
+        return []
 
     lines = [line for line in lines if line]
 

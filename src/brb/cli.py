@@ -4,6 +4,7 @@ from dotenv import set_key, load_dotenv
 
 from brb.saving.find_commands import find_commands
 from brb.saving.save_message import Saving
+from brb.saving.git_utils import get_git_info
 from brb.llm.AgentLLM import GeminiLLM
 
 from brb.database.database import Database
@@ -26,8 +27,9 @@ def save(
 ) -> None:
     geminiapikey = os.environ.get("GEMINI_API_KEY")
     msg = Saving(message, find_commands(limit), GeminiLLM(geminiapikey) if aisave else None)
+    branch, status = get_git_info()
 
-    db.insert_saving(os.getcwd(), msg.message, msg.lastcommands)
+    db.insert_saving(os.getcwd(), msg.message, msg.lastcommands, branch, status)
     typer.echo("Session saved!")
 
 @app.command(name="set-key", help="Set the Gemini API Key")
@@ -39,9 +41,14 @@ def setkey(
 
 @app.command(name="resume")
 def resume(
+        session_id: Annotated[int|None, typer.Argument(help="Specific session ID")] = None,
         here: Annotated[bool, typer.Option("--here", help="Resume the last session that was saved at this path")] = False
 ):
-    display_session(db.fetch_last_session())
+    if session_id:
+        session = db.fetch_session_by_id(session_id)
+    else:
+        session = db.fetch_last_session()
+    display_session(session)
 
 @app.command(name="list")
 def list(
@@ -51,7 +58,7 @@ def list(
     listsession = db.fetch_all_sessions()[:limit]
     for session in listsession:
         if not show_commands:
-            session["commands"] = []
+            session.commands = []
         display_session(session)
 
 if __name__ == "__main__":
