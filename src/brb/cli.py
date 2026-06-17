@@ -32,14 +32,27 @@ def save(
 
 @app.command(name="set-key", help="Set the Gemini API Key")
 def setkey(
-    key: Annotated[str, typer.Argument(help="Gemini API Key")]
+        key: Annotated[str, typer.Argument(help="Gemini API Key")]
 ) -> None:
     os.makedirs(os.path.dirname(ENV_PATH), exist_ok=True)
     set_key(ENV_PATH, "GEMINI_API_KEY", key)
 
 @app.command(name="resume")
-def resume():
+def resume(
+        here: Annotated[bool, typer.Option("--here", help="Resume the last session that was saved at this path")] = False
+):
     display_session(db.fetch_last_session())
+
+@app.command(name="list")
+def list(
+        limit: Annotated[int, typer.Option("--limit", help="Number of last messages to be displayed")] = 5,
+        show_commands: Annotated[bool, typer.Option("--show_commands", help="Show commands")] = False
+):
+    listsession = db.fetch_all_sessions()[:limit]
+    for session in listsession:
+        if not show_commands:
+            session["commands"] = []
+        display_session(session)
 
 if __name__ == "__main__":
     app()

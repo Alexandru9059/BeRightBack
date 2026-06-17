@@ -50,6 +50,15 @@ class Database:
         for c in lastcommands:
             self.insert_command(s_id, c)
 
+    def fetch_all_commands(self, indexsession: int) -> list[str]:
+        with self.get_connection() as conn:
+            commands = conn.execute("""
+                SELECT command
+                FROM commands
+                WHERE session_id = ?
+            """, (indexsession,)).fetchall()
+            return [command[0] for command in commands]
+
     def fetch_last_session(self) -> dict|None:
         with self.get_connection() as conn:
             last_sess = conn.execute("""
@@ -62,16 +71,31 @@ class Database:
             if last_sess is None:
                 return None
 
-            commands = conn.execute("""
-                SELECT command
-                FROM commands
-                WHERE session_id = ?
-            """, (last_sess[0], )).fetchall()
+            commands = self.fetch_all_commands(last_sess[0])
 
             return {
                 "id": last_sess[0],
                 "folder": last_sess[1],
                 "created_at": last_sess[2],
                 "message": last_sess[3],
-                "commands": [c[0] for c in commands]
+                "commands": commands
             }
+
+    def fetch_all_sessions(self) -> list[dict] | None:
+        with self.get_connection() as conn:
+            all_sess = conn.execute("""
+                SELECT id, folder, created_at, message 
+                FROM sessions
+                ORDER BY id DESC
+            """).fetchall()
+
+            if all_sess is None:
+                return None
+
+            return [{
+                "id": i[0],
+                "folder": i[1],
+                "created_at": i[2],
+                "message": i[3],
+                "commands": self.fetch_all_commands(i[0])
+            } for i in all_sess]
