@@ -5,9 +5,18 @@ from brb.saving.models import Session
 class Database:
     def __init__(self, db_path: str = os.path.expanduser("~/.brb/brb.db")):
         self.db_path = db_path
+        self._memory_conn = None
 
     def get_connection(self) -> sqlite3.Connection:
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        if self.db_path == ":memory:":
+            if self._memory_conn is None:
+                self._memory_conn = sqlite3.connect(self.db_path)
+                self._memory_conn.execute("PRAGMA foreign_keys = ON")
+            return self._memory_conn
+
+        dirname = os.path.dirname(self.db_path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
@@ -48,10 +57,15 @@ class Database:
             """, (sess_id, command))
             return cursor.lastrowid
 
-    def insert_saving (self, path: str, message: str, lastcommands: list[str], git_branch: str|None = None, git_status: str|None = None):
-        s_id = self.insert_session(path, message, git_branch, git_status)
-        for c in lastcommands:
-            self.insert_command(s_id, c)
+    def insert_saving(self, path: str, message: str, lastcommands: list[str], git_branch: str|None = None, git_status: str|None = None):
+        with self.get_connection() as conn:
+            cursor = conn.execute("""
+                INSERT INTO sessions (folder, message, git_branch, git_status) VALUES(?, ?, ?, ?)
+            """, (path, message, git_branch, git_status))
+            s_id = cursor.lastrowid
+            conn.executemany("""
+                INSERT INTO commands (session_id, command) VALUES(?, ?)
+            """, [(s_id, c) for c in lastcommands])
 
     def fetch_all_commands(self, indexsession: int) -> list[str]:
         with self.get_connection() as conn:

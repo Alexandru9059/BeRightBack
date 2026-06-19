@@ -16,8 +16,15 @@ import typer
 ENV_PATH = os.path.expanduser("~/.brb/.env")
 load_dotenv(ENV_PATH)
 app = typer.Typer(help="CLI tool")
-db = Database()
-db.init_db()
+
+_db = None
+
+def get_db() -> Database:
+    global _db
+    if _db is None:
+        _db = Database()
+        _db.init_db()
+    return _db
 
 @app.command(name="save", help="Save last work details")
 def save(
@@ -29,7 +36,7 @@ def save(
     msg = Saving(message, find_commands(limit), GeminiLLM(geminiapikey) if aisave else None)
     branch, status = get_git_info()
 
-    db.insert_saving(os.getcwd(), msg.message, msg.lastcommands, branch, status)
+    get_db().insert_saving(os.getcwd(), msg.message, msg.lastcommands, branch, status)
     typer.echo("Session saved!")
 
 @app.command(name="set-key", help="Set the Gemini API Key")
@@ -44,6 +51,7 @@ def resume(
         session_id: Annotated[int|None, typer.Argument(help="Specific session ID")] = None,
         here: Annotated[bool, typer.Option("--here", help="Resume the last session that was saved at this path")] = False
 ):
+    db = get_db()
     if session_id:
         session = db.fetch_session_by_id(session_id)
     else:
@@ -55,7 +63,7 @@ def list(
         limit: Annotated[int, typer.Option("--limit", help="Number of last messages to be displayed")] = 5,
         show_commands: Annotated[bool, typer.Option("--show_commands", help="Show commands")] = False
 ):
-    listsession = db.fetch_all_sessions()[:limit]
+    listsession = get_db().fetch_all_sessions()[:limit]
     for session in listsession:
         if not show_commands:
             session.commands = []

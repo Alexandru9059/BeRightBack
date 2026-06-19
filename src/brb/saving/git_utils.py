@@ -22,5 +22,6 @@ def get_git_info() -> tuple[str|None, str|None]:
 
         return branch, status
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Could not get git info. Could be due to git not being installed or the folder not being a git repo.")
+        import sys
+        print("Could not get git info. Could be due to git not being installed or the folder not being a git repo.", file=sys.stderr)
         return None, None

@@ -14,7 +14,7 @@ def display_session(session: Session|None) -> None:
             git_section += f"[bold magenta]Git Status:[/bold magenta]\n{session.git_status}\n"
         else:
             git_section += f"[italic]Working tree clean[/italic]\n"
-    commands_str = "\n".join(f"  {i+1}. {c}" for i, c in session.commands)
+    commands_str = "\n".join(f"  {i+1}. {c}" for i, c in enumerate(session.commands))
 
     content = (
         f"[bold]ID:[/bold]         {session.id}\n"
