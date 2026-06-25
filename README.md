@@ -2,13 +2,7 @@
 
 A CLI tool to snapshot your work context before stepping away and resume it instantly when you're back.
 
-## What it does
-
-- `brb save` — captures your current folder, last N terminal commands, and an optional note, then stores it in a local SQLite database
-- `brb resume` — reprints your last saved session so you can pick up where you left off
-- `brb set-key` — stores your Gemini API key for AI-generated session summaries
-
-## Installation
+## Installation Guide
 
 **Requirements:** Python 3.12+
 
@@ -22,7 +16,7 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Shell setup (required for accurate history)
+### Shell setup (required for accurate history)
 
 For `brb save` to capture your most recent commands, your shell needs to flush history to disk before each prompt.
 
@@ -38,59 +32,17 @@ setopt INC_APPEND_HISTORY
 
 Then restart your terminal or `source` the file.
 
-## Usage
+---
 
-```bash
-# Save current context
-brb save
+## How It Works
 
-# Save with a note describing what you were doing
-brb save "working on auth module"
+`brb` helps you safely step away from your codebase by capturing your current state. It saves your shell history, grabs your Git branch, optionally stashes your dirty (uncommitted) files, and even uses AI to summarize your progress. When you return, `brb` restores your context and optionally pops your stashed files right back into your working directory. All data is saved safely in a local SQLite database at `~/.brb/brb.db`.
 
-# Save with a custom number of commands (default: 10)
-brb save "fixing the login bug" --limit 15
+### Command Reference
 
-# Save with an AI-generated summary (requires API key)
-brb save "refactoring db layer" --ai
-
-# Resume last saved session
-brb resume
-
-# Set your Gemini API key
-brb set-key <your-api-key>
-```
-
-## Data storage
-
-All data is stored locally at `~/.brb/`:
-```
-~/.brb/
-├── brb.db   # SQLite database of saved sessions
-└── .env     # Gemini API key (never committed to git)
-```
-
-## Project structure
-
-```
-src/brb/
-├── cli.py               # CLI commands (typer)
-├── saving/
-│   ├── models.py        # Abstract session model
-│   ├── save_message.py  # Concrete session implementation
-│   └── find_commands.py # Shell history reader
-├── database/
-│   └── database.py      # SQLite repository
-├── llm/
-│   ├── BaseLLM.py       # Abstract LLM interface
-│   ├── AgentLLM.py      # Gemini implementation
-│   └── errors.py        # Custom exceptions
-└── ui/
-    └── display.py       # Rich terminal output
-```
-
-## Dependencies
-
-- [typer](https://typer.tiangolo.com/) — CLI framework
-- [python-dotenv](https://pypi.org/project/python-dotenv/) — `.env` file support
-- [google-genai](https://pypi.org/project/google-genai/) — Gemini API client
-- [rich](https://rich.readthedocs.io/) — terminal formatting
+| Command | Usages & Options | Explanation |
+| :--- | :--- | :--- |
+| `brb save` | `brb save [message]`<br>`--limit <N>`<br>`--ai`<br>`--stash` | Saves your current session. Captures the last N terminal commands, current git status, and saves them to SQLite. `--stash` safely hides uncommitted files into git stash. `--ai` generates an intelligent summary using Gemini. |
+| `brb resume` | `brb resume [id]`<br>`--here`<br>`--pop` | Resumes a saved session. Reprints your previous context. `--here` filters for the last session saved in the current folder. `--pop` instantly restores your stashed uncommitted files to your working directory. |
+| `brb list` | `brb list`<br>`--limit <N>`<br>`--show_commands` | Lists the most recent saved sessions. `--limit` changes how many to display. `--show_commands` reveals the raw terminal history attached to each session. |
+| `brb set-key` | `brb set-key <api_key>` | Stores your Google Gemini API key locally so `brb save --ai` can generate summaries. |
