@@ -1,6 +1,7 @@
 from rich import print as rprint
 from rich.panel import Panel
 from brb.saving.models import Session
+from brb.saving.git_utils import get_stashed_files
 
 def display_session(session: Session|None) -> None:
     if session is None:
@@ -25,4 +26,11 @@ def display_session(session: Session|None) -> None:
         f"[bold]Commands:[/bold]\n"
         f"{commands_str}"
     )
+    stashed_files = get_stashed_files(session.id)
+
+    if stashed_files:
+        print(f"📦 Snapshot available for {len(stashed_files)} files:")
+        for file in stashed_files:
+            print(f"  • {file}")
+
     rprint(Panel(content, title = "Last BRB Session", border_style = "blue"))

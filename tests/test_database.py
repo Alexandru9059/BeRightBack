@@ -101,3 +101,18 @@ def test_display_session_none(capsys):
     display_session(None)
     captured = capsys.readouterr()
     assert "No session found" in captured.out
+
+
+def test_fetch_last_session_by_folder(memory_db):
+    """Test retrieving the last session matching a specific folder."""
+    memory_db.insert_session("/path1", "First in path1")
+    memory_db.insert_session("/path2", "First in path2")
+    memory_db.insert_session("/path1", "Second in path1")
+    
+    session = memory_db.fetch_last_session_by_folder("/path1")
+    assert session is not None
+    assert session.folder == "/path1"
+    assert session.message == "Second in path1"
+    
+    session_other = memory_db.fetch_last_session_by_folder("/path_unknown")
+    assert session_other is None

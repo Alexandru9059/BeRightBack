@@ -43,29 +43,17 @@ class Database:
                 )
             """)
 
-    def insert_session(self, folder: str, message: str, git_branch: str|None = None, git_status: str|None = None) -> int:
+    def insert_session(self, sess: Session) -> Session|None:
         with self.get_connection() as conn:
             cursor = conn.execute("""
                 INSERT INTO sessions (folder, message, git_branch, git_status) VALUES(?, ?, ?, ?)
-            """, (folder, message, git_branch, git_status))
-            return cursor.lastrowid
-
-    def insert_command(self, sess_id: int, command: str) -> int:
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
-                INSERT INTO commands (session_id, command) VALUES(?, ?)
-            """, (sess_id, command))
-            return cursor.lastrowid
-
-    def insert_saving(self, path: str, message: str, lastcommands: list[str], git_branch: str|None = None, git_status: str|None = None):
-        with self.get_connection() as conn:
-            cursor = conn.execute("""
-                INSERT INTO sessions (folder, message, git_branch, git_status) VALUES(?, ?, ?, ?)
-            """, (path, message, git_branch, git_status))
-            s_id = cursor.lastrowid
+            """, (sess.folder, sess.message, sess.git_branch, sess.git_status))
+            sess.id = cursor.lastrowid
             conn.executemany("""
                 INSERT INTO commands (session_id, command) VALUES(?, ?)
-            """, [(s_id, c) for c in lastcommands])
+            """, [(sess.id, c) for c in sess.commands])
+        return self.fetch_session_by_id(sess.id)
+
 
     def fetch_all_commands(self, indexsession: int) -> list[str]:
         with self.get_connection() as conn:
@@ -105,6 +93,31 @@ class Database:
                 ORDER BY id DESC
                 LIMIT 1
             """).fetchone()
+
+            if last_sess is None:
+                return None
+
+            commands = self.fetch_all_commands(last_sess[0])
+
+            return Session(
+                id= last_sess[0],
+                folder= last_sess[1],
+                created_at= last_sess[2],
+                message= last_sess[3],
+                commands= commands,
+                git_branch = last_sess[4],
+                git_status = last_sess[5]
+            )
+
+    def fetch_last_session_by_folder(self, folder: str) -> Session|None:
+        with self.get_connection() as conn:
+            last_sess = conn.execute("""
+                SELECT id, folder, created_at, message, git_branch, git_status
+                FROM sessions
+                WHERE folder = ?
+                ORDER BY id DESC
+                LIMIT 1
+            """, (folder,)).fetchone()
 
             if last_sess is None:
                 return None
