@@ -95,5 +95,11 @@ def list(
             session.commands = []
         display_session(session)
 
+@app.command(name="tui")
+def tui_command():
+    from brb.ui.tui import BRBTuiApp
+    app = BRBTuiApp()
+    app.run()
+
 if __name__ == "__main__":
     app()
